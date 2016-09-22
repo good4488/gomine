@@ -1,1 +1,1 @@
-# gomine
+# My Textmining Project
