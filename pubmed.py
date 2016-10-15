@@ -1,9 +1,11 @@
 from nltk.tokenize import sent_tokenize
 from nltk.stem import WordNetLemmatizer
+from nltk.stem import SnowballStemmer
 from Preprocessing import *
+from rake import *
 
 lemmatizer_pubmed = WordNetLemmatizer()
-
+stemmer_pubmed = SnowballStemmer('english')
 
 def convert_date(date):
     date_list = date.split()
@@ -51,7 +53,7 @@ class PubMedTokenizer():
             for c in child.iter('KeywordList'):
                 for d in c.iter('Keyword'):
                     if d.text:
-                        sub_list.append(d.text.lower())
+                        sub_list.append(d.text)
 
             keyword_list.append(sub_list)
         return keyword_list
@@ -97,18 +99,18 @@ class PubMedTokenizer():
                 date_list.append(date)
 
                 title = ""
-                raw_title = line_text[i+1].lower().split()
+                raw_title = line_text[i+1].split()
                 for token in raw_title:
                     title = title +' '+ token
                 title_list.append(title[1:])
 
                 if line_text[i+3][:6] == 'Author':
-                    raw_text = line_text[i+4].lower().split()
+                    raw_text = line_text[i+4].split()
                     text = ''
                     for token in raw_text:
                         text = text+' '+token
                 else:
-                    raw_text = line_text[i+3].lower().split()
+                    raw_text = line_text[i+3].split()
                     text = ''
                     for token in raw_text:
                         text = text+' '+token
@@ -178,6 +180,7 @@ class PubMedTokenizer():
                 lemma_first = lemmatize_tokens_for_pos(filtered_tokens, lemmatizer_pubmed)
                 lemmatized_tokens = [word for word in lemma_first if not word in self.stop_words]
                 remove_num = [word for word in lemmatized_tokens if word > 'a' and word.isalnum() and not word[0].isdigit()]
+                #stemming = stem_tokens(remove_num, stemmer_pubmed)
                 final_word = []
                 for word in remove_num:
                     if len(word) == 2:
@@ -214,14 +217,33 @@ class PubMedTokenizer():
         return total_corpus
 
 
-    def run(self):
+    def run(self, RAKE_OPTION=False):
         raw_text_list, doi_list, PMID_list, title_list, journal_list, date_list, keyword_list = self.line_to_structed_data()
+
+        date_list, raw_text_list, doi_list, PMID_list, title_list, journal_list, keyword_list = (list(t) for t in zip(*sorted(zip(date_list, raw_text_list, doi_list, PMID_list, title_list, journal_list, keyword_list))))
+
         token_list = self.get_pubmed_tokens(title_list, raw_text_list)
 
         for i, data in enumerate([doi_list, PMID_list, title_list, journal_list, date_list]):
             self.make_output(i,data)
 
-        return token_list
+        if RAKE_OPTION:
+            for i, text in enumerate(raw_text_list):
+                rake = Rake(self.stop_words)
+                keyword_rake = rake.run(text)
+                write_path = self.basic_path[8]
+                with open(write_path+'RAKE_%d.txt'%(self.corpus_index+i+1),'w',encoding='UTF-8') as f:
+                    if len(keyword_rake) > 4:
+                        f.write('%s\n'%keyword_rake[0][0])
+                        f.write('%s\n'%keyword_rake[1][0])
+                        f.write('%s\n'%keyword_rake[2][0])
+                        f.write('%s\n'%keyword_rake[3][0])
+                        f.write('%s\n'%keyword_rake[4][0])
+                    else:
+                        for j in range(len(keyword_rake)):
+                            f.write('%s\n'%keyword_rake[j][0])
+
+        return token_list, keyword_list
 
 
 #class ManualKeywordAnalyzer():

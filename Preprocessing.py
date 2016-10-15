@@ -396,16 +396,17 @@ class Get_HTML_Information:
 
 
 def get_tokens(text):
-    #p = re.compile('\(.*\)|\[.*\]|\{.*\}')
-    lowers = text.lower()
-    #lowers = p.sub(' ', lowers)
-    #no_punct = lowers.translate(str.maketrans(',-−——­→—×≪‖⊥∼〉〈≤≥→"′‘≈“”&\'()≡+:;<=>_`{|}~·––/',"                                             "))
-    no_punct = lowers.translate(str.maketrans(',→×≪‖⊥∼〉〈≤≥→"′‘≈“”&\'≡+:;<=>_`{|}~·/',"                                   ",'-−——­—––'))
+    p2 = re.compile('\(.{0,10}\)|\[.{0,10}\]|\{.{0,10}\}')
+    p = re.compile('(?P<name>[A-Z]+)(?P<bar>[-−———––]{1})')
+    text2 = p.sub("\g<name>",text)
+    lowers = text2.lower()
+    lowers = p2.sub(' ', lowers)
+    no_punct = lowers.translate(str.maketrans(',-−——→—×≪‖⊥∼〉〈≤≥→"′‘≈“”&\'()≡+:;<=>_`{|}~·––/',"                                            "))
+    #no_punct = lowers.translate(str.maketrans(',→×≪‖⊥∼〉〈≤≥→"′‘≈“”&\'≡+:;<=>_`{|}~·/',"                                   ",'-−———––'))
     no_punct = no_punct.translate(str.maketrans("","", '!©∧↑χσηϕμτθ∞φ∑()γλ†#±⋯$δ°⋅β%α*.á?@\\^âåå[]'+string.punctuation ))
     #no_punct = lowers.translate(str.maketrans("","", '!×©∧↑χ≪ση–‖ϕ⊥μ∼τθ〉∞φ〈≤∑≥γλ—→†"′#‘⋯$δ°≈⋅“”β%≡&\'()α*+,-.á:;<=>?@\\^_`{|}~−·âåå­'+string.punctuation ))
     #no_punct = lowers.translate(str.maketrans("","", '!×©∧↑χ≪ση–‖ϕ⊥μ∼τθ〉∞φ〈≤∑≥γλ—→†"′#‘⋯$δ°≈⋅“”β%≡&\'()α*+,-.á:;<=>?@\\^_`{|}~−·âåå­'+string.punctuation ))
     #no_punct = lowers.translate(str.maketrans("","", '!×©∧↑χ≪ση–‖ϕ⊥μ∼τθ〉∞φ〈≤∑≥γλ—→†"′#‘⋯$δ°≈⋅“”β%≡&\'()α*+,-.á:;<=>?@\\^_`{|}~−·âåå­'+string.punctuation ))
-
     tokenizer = RegexpTokenizer('\s+',gaps=True)
     tokens = tokenizer.tokenize(no_punct)
 
@@ -427,10 +428,11 @@ def lemmatize_tokens(tokens, lemmatizer):
     return lemma
 
 
-#def stem_tokens():
-
-
-
+def stem_tokens(tokens, stemmer):
+    stem = []
+    for item in tokens:
+        stem.append(stemmer.stem(item))
+    return stem
 
 
 def lemmatize_tokens_for_pos(tokens, lemmatizer):
@@ -440,8 +442,8 @@ def lemmatize_tokens_for_pos(tokens, lemmatizer):
         tag = tag if tag in ['a','r','n','v'] else None
         if not tag:
             lemma.append(word)
-        #elif tag in ['a', 'r']:
-            #continue
+        elif tag in ['a', 'r']:
+            continue
         else:
             lemma.append(lemmatizer.lemmatize(word, tag))
 

@@ -7,6 +7,7 @@ import os.path
 from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from nltk.stem import SnowballStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from nltk.tokenize import sent_tokenize
@@ -22,6 +23,8 @@ import setlink
 
 remove_tag_list = ["script", "style","table","ui","li","a","ol","noscript",'option']
 lemmatizer = WordNetLemmatizer()
+stemmer = SnowballStemmer('english')
+
 
 def checkdir_and_makedir(path):
     if os.path.isdir(path):
@@ -272,7 +275,7 @@ class Make_custom_corpus():
                     f.write(raw_text)
 
             if self.option[4] == True:
-                rake = Rake("SmartStoplist.txt")
+                rake = Rake(self.stop_words)
                 keywords = rake.run(raw_text)
                 write_path = self.basic_path[8]
                 with open(write_path+'RAKE_%d.txt'%(count_files+1),'w',encoding = 'UTF-8') as f:
@@ -297,6 +300,7 @@ class Make_custom_corpus():
                 lemma_first = lemmatize_tokens_for_pos(filtered_tokens, lemmatizer)
                 lemmatized_tokens = [word for word in lemma_first if not word in self.stop_words]
                 remove_num = [word for word in lemmatized_tokens if word > 'a' and word.isalnum() and not word[0].isdigit()]
+                #stemming = stem_tokens(remove_num, stemmer)
                 final_word = []
                 for word in remove_num:
                     if len(word) == 2:
@@ -342,7 +346,8 @@ class Make_custom_corpus():
 
 
     def build_corpus(self,reuse_path, corpus_length):
-        if self.option[3] == True:
+        keyword_pubmed=[]
+        if self.option[3] == True:                  #REUSE
             total_corpus = []
             for i in range(corpus_length):
                 try:
@@ -351,22 +356,38 @@ class Make_custom_corpus():
                 except IOError:
                     break
 
+                try:
+                    with open(reuse_path+'pubmed_keyword.txt','r',encoding='UTF-8') as f:
+                        keyword_pubmed = [words.split() for words in f.readlines()]
+                except IOError:
+                    break
+
         else:
-            if self.option[5] or self.option[6]:
+            if self.option[5] or self.option[6]:    #DATA
                 corpus_index, total_corpus_gscholar = self.make_corpus()
             else:
                 corpus_index=0
                 total_corpus_gscholar=[]
 
-            if self.option[7]:
+            if self.option[7]:                      #PUBMED
                 PubMed = PubMedTokenizer(corpus_index,'pubmed_result.txt','pubmed_result.xml',self.option, self.basic_path, self.stop_words)
-                total_corpus_pubmed = PubMed.run()
+                write_path = self.basic_path[4]
+                total_corpus_pubmed, keyword_pubmed = PubMed.run(RAKE_OPTION=self.option[4])
+                with open(write_path+'pubmed_keyword.txt','w',encoding='UTF-8') as f:
+                    for words in keyword_pubmed:
+                        if not words:
+                            f.write('\n')
+                        else:
+                            for word in words:
+                                f.write(word+' ')
+                            f.write('\n')
+
             else:
                 total_corpus_pubmed = []
 
             total_corpus = total_corpus_gscholar+total_corpus_pubmed
 
-        return total_corpus
+        return total_corpus, keyword_pubmed
 
 
 class TFIDF_Vectorizer_scikit:
@@ -580,8 +601,17 @@ class TFIDF_Vectorizer_scikit:
             tfidf_list, col_list = (list(t) for t in zip(*sorted(zip(tfidf_list,col_list),reverse=True)))
             target_list.append(set(col_list[:keycut]))
             with open(write_path+'keywords.txt','a') as f:
-                for i in col_list[:keycut]:
-                    f.write('%s '%(self.words[i]))
+                for j in col_list[:keycut]:
+                    f.write('%s '%(self.words[j]))
+                '''
+                if len(col_list) >= keycut:
+                    for k in range(keycut, len(col_list)):
+                        if tfidf_list[keycut-1] == tfidf_list[k]:
+                            f.write('%s '%(self.words[col_list[k]]))
+                            target_list[i].add(col_list[k])
+                        if k >= keycut+5:
+                            break
+                '''
                 f.write('\n')
 
         return target_list
@@ -656,6 +686,38 @@ class ONLYTF_Vectorizer_scikit(TFIDF_Vectorizer_scikit):
                 Unique_set = Unique_set|set(all_word_in_file)
             else:
                 Unique_set = Unique_set|set(keyword_in_file)
+
+
+    def list_for_keywordset(self, keycut):
+        target_list = []
+        write_path = self.basic_path[5]
+        with open(write_path+'keywords_TF.txt','w') as f:
+            f.write('')
+
+        for i, mat in enumerate(self.matrix):
+            col_list = mat.nonzero()[1]
+            if len(col_list) == 0:
+                continue
+
+            tfidf_list = [self.matrix[i,col] for col in col_list]
+            tfidf_list, col_list = (list(t) for t in zip(*sorted(zip(tfidf_list,col_list),reverse=True)))
+            target_list.append(set(col_list[:keycut]))
+            with open(write_path+'keywords_TF.txt','a') as f:
+                for j in col_list[:keycut]:
+                    f.write('%s '%(self.words[j]))
+                '''
+                if len(col_list) >= keycut:
+                    for k in range(keycut, len(col_list)):
+                        if tfidf_list[keycut-1] == tfidf_list[k]:
+                            f.write('%s '%(self.words[col_list[k]]))
+                            target_list[i].add(col_list[k])
+                        if k >= keycut+5:
+                            break
+                '''
+                f.write('\n')
+
+        return target_list
+
 
 
     def run(self):

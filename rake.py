@@ -59,8 +59,9 @@ def split_sentences(text):
     return sentences
 
 
-def build_stop_word_regex(stop_word_file_path):
-    stop_word_list = load_stop_words(stop_word_file_path)
+def build_stop_word_regex(stop_word_set):
+    #stop_word_list = load_stop_words(stop_word_file_path)
+    stop_word_list = list(stop_word_set)
     stop_word_regex_list = []
     for word in stop_word_list:
         word_regex = r'\b' + word + r'(?![\w-])'  # added look ahead for hyphen
@@ -120,9 +121,13 @@ def generate_candidate_keyword_scores(phrase_list, word_score):
 
 
 class Rake(object):
-    def __init__(self, stop_words_path):
-        self.stop_words_path = stop_words_path
-        self.__stop_words_pattern = build_stop_word_regex(stop_words_path)
+    #def __init__(self, stop_words_path):
+        #self.stop_words_path = stop_words_path
+        #self.__stop_words_pattern = build_stop_word_regex(stop_words_path)
+
+    def __init__(self, stop_words_set):
+        self.stop_word_set = stop_words_set
+        self.__stop_words_pattern = build_stop_word_regex(stop_words_set)
 
     def run(self, text):
         sentence_list = split_sentences(text)

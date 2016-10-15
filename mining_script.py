@@ -18,7 +18,7 @@ Random_option = False
 N_gram = (1,1)
 MAX_DF, MIN_DF = 1.0, 1
 ALL_WORD = True
-direc_suffix = '/160911_test2/'
+direc_suffix = '/160922_test/'
 COREMOF, GSCHOLAR, PUBMED = False, False, True
 
 # =================================================
@@ -45,11 +45,11 @@ control_all_directory(data_path, direc_suffix, WRITE_PATH_LIST)
 MAKE_FULL_TEXT = True
 MAKE_RAW_TEXT = True
 BUILD_CORPUS = True
-REUSE_CORPUS = True
-REUSE_PATH = data_path+'/160911_test/tokens/'
+REUSE_CORPUS = False
+REUSE_PATH = data_path+'/160922_bar/tokens/'
 
-TFIDF, ONLYTF = True, False
-RAKE = False
+TFIDF, ONLYTF = True, True
+RAKE = True
 
 # =================================================
 #   Make Output files?
@@ -79,7 +79,7 @@ file_list = get_file_list(main_path+'/list_time.txt', Num_files, Random_option)
 
 # make corpus from HTML paper to text
 corpus_maker = Make_custom_corpus(file_list, CORPUS_OPTION, BASIC_PATH, stop_words)
-total_corpus = corpus_maker.build_corpus(REUSE_PATH, Num_files)
+total_corpus, keyword_pubmed = corpus_maker.build_corpus(REUSE_PATH, Num_files)
 print('Making Corpus End......')
 
 
@@ -96,10 +96,27 @@ TFIDF_model.run()
 TFIDF_total_word = TFIDF_model.get_unique_word()
 #Idea_list = TFIDF_model.get_test_idea()
 
-
 df_list = TFIDF_model.get_df_list()
 idf_list = TFIDF_model.get_idf_list()
-target_keyword = TFIDF_model.list_for_keywordset(20)
+target_keyword_6 = TFIDF_model.list_for_keywordset(6)
+target_keyword_8 = TFIDF_model.list_for_keywordset(8)
+target_keyword_10 = TFIDF_model.list_for_keywordset(10)
+target_keyword_12 = TFIDF_model.list_for_keywordset(12)
+target_keyword_14 = TFIDF_model.list_for_keywordset(14)
+
+# ONLYTF
+ONLYTF_model = ONLYTF_Vectorizer_scikit(total_corpus, ONLYTF_OPTION, BASIC_PATH)
+ONLYTF_model.run()
+target_keyword_TF_6 = ONLYTF_model.list_for_keywordset(6)
+target_keyword_TF_8 = ONLYTF_model.list_for_keywordset(8)
+target_keyword_TF_10 = ONLYTF_model.list_for_keywordset(10)
+target_keyword_TF_12 = ONLYTF_model.list_for_keywordset(12)
+target_keyword_TF_14 = ONLYTF_model.list_for_keywordset(14)
+
+
+# Word vs. df
+df_vs_word_dic = document_frequency_versus_word(out_path, df_list, TFIDF_total_word)
+index_versus_word(out_path)
 
 '''
 import setlink
@@ -137,14 +154,6 @@ print(reg_index)
 #norm_tf_matrix = TFIDF_model.get_norm_tf()
 #print(df_list[0], df_list[1])
 
-
-# Word vs. df
-df_vs_word_dic = document_frequency_versus_word(out_path, df_list, TFIDF_total_word)
-index_versus_word(out_path)
-
-# ONLYTF
-# ONLYTF_model = ONLYTF_Vectorizer_scikit(total_corpus, ONLYTF_OPTION, BASIC_PATH)
-# ONLYTF_model.run()
 
 
 # F-measure
